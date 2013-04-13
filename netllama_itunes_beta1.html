@@ -1,0 +1,429 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Dynamic Canvas</title>
+<link rel="stylesheet" type="text/css" href="stylesheets/player.css" />
+<link rel="stylesheet" type="text/css" href="stylesheets/flexstyles.css" />
+
+
+<!-- Centering className both horizontally and vertically: -->
+
+
+<style>
+
+
+
+div.mini_list {
+
+	padding:10px;
+	width:300px;
+	margin:2px auto;
+	
+}
+ 
+.mini_list h2 {
+ font-size: 2em;
+		line-height: 24px;
+
+	  font-weight: 200;
+		letter-spacing: 2px;
+
+	  text-align: center;
+}
+ 
+.mini_list li {
+  font: 200 20px/1.5 Helvetica, Verdana, sans-serif;
+
+	font-family: Lucida Grande;
+	color: #444;
+	-webkit-background-clip: text;
+	background-clip: text;
+	background-color: transparent;
+	text-shadow: rgba(255,255,255,0.5) 0px 3px 3px;
+}
+ 
+.mini_list li:last-child {
+  border-top: 1px solid #ccc;
+  background: rgba(255, 255, 255, 0.1);
+}
+ 
+.mini_list li a {
+  text-decoration: none;
+  color: #000;
+  display: block;
+  width: 100%;
+text-align:center;
+	text-transform: uppercase;
+    -webkit-transition: font-size 0.3s ease, background-color 0.3s ease;
+
+}
+
+ 
+.mini_list li a:hover {
+  font-size: 20px;
+   background: rgba(0, 0, 0, 0.5);
+}
+
+figure {
+    margin: 0 0 1.3rem 0;
+
+}
+body:after { clear: both }
+
+p { margin-bottom: 1.3rem }
+
+
+section {
+	width:20px;
+  	display: none;
+  -webkit-transition: .125s linear;
+
+    transition: .125s linear;
+   visibility: hidden;
+}
+input[type=checkbox] {
+	display: none;
+    visibility: hidden;
+}
+
+input[type=checkbox]:checked ~ section {
+ 
+ display: block;
+	width:100%;
+    visibility: visible;
+
+}
+
+
+</style>
+
+</head>
+
+<body>
+	<input type="file" id="myfile" />
+<div id="pagefixed_wrapper" >
+	<!-- stage wrapper -->
+	<div id="wrapper" class="inactive" >
+
+		<div class="className ">
+		
+		
+				  <div class="plyr_details">    
+							<h3 id="lab_track"></h3>
+
+							<span id="lab_album"></span>
+								<p><span id="dtime"></span>	<span id="ctime"></span></p>
+
+
+									<p id="plyctl" class="mctl">
+										<i id= "playPause" class="icon-play"></i>
+										<i id= "prevT" class="icon-fast-backward tctl"></i>
+										<i id= "nextT" class="icon-fast-forward tctl"></i>
+
+									</p>
+
+
+									<div class="load-bar"><div id = "timebar" class="load-bar-inner" ></div></div>
+			      	<p  class="mctl"><i id= "volmute" class="icon-volume-down"></i> <input id="volume" type="range" min="0" max="1" step="0.1"value="0" /></p>
+
+				
+				  </div>
+		    <output id="list"></output>
+
+		
+		</div>
+	
+	</div>
+	<!-- END/stage wrapper -->
+		
+<!-- void space -->
+		
+		<div class="className">
+		
+	<h1><a href="#" onclick="myfile.click();">import playlist</a></h1>
+		</div>
+		
+<!--END/void space -->
+		
+			<!-- control panel -->
+	<div id="flexbox">
+
+	  <div class="col">
+
+
+	   <h3 id="bw" class="ctslide">back</h3>
+	   
+	 
+
+
+	  </div>
+	  <div class="col">
+	    <h2>a blank canvas with a stage  below it</h2>
+
+	    <p>Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.</p>
+	
+	  </div>
+	  <div class="col">
+		 <h3 id="fw" class="ctslide">forward</h3>
+	  </div>
+
+	</div>
+		<!--END/control panel -->
+
+
+
+
+
+<script>
+//start button
+var start = document.getElementById("start");
+//file input target
+var file = document.getElementById('myfile');
+//track labels
+var lab_track = document.getElementById('lab_track');
+var lab_album = document.getElementById('lab_album');
+//playlist data arrays
+var trackArr=[];
+var pathArr=[];
+//audio element
+var audio = new Audio();
+//buttons
+var playpause = document.getElementById('playPause');
+//timers
+var dtimer = document.getElementById('dtime');
+var ctimer = document.getElementById('ctime');
+var ctime = 0;
+//step counter
+var stepC= 0;
+
+
+
+//file getter validation
+
+file.onchange = function(e){
+    var ext = this.value.match(/\.(.+)$/)[1];
+    switch(ext)
+    {
+        case 'm3u8':
+           handleFileSelect(e);
+            break;
+        default:
+            alert('sorry only m3u8 files accepted at this time');
+            this.value='';
+    }
+};
+
+
+
+
+
+
+
+
+
+
+  
+
+// //start click listener
+// 	start.addEventListener("click", function(){		
+// 					//showCanvas("flexbox");
+// 			
+// 	}, false);
+
+
+
+
+//controller click listener
+		document.getElementById('plyctl').addEventListener('click', function(e) {
+		    if (e.target.className.indexOf('tctl') > -1) {
+		        class_steps_handler(e.target.id);
+		    }
+		});
+
+	//playlist parsing handler
+	
+	      function handleFileSelect(evt) {
+	        var files = evt.target.files; 
+	        for (var i = 0, f; f = files[i]; i++) {
+	          var reader = new FileReader();
+	          reader.onload = (function(theFile) {
+	            return function(e) {
+			var fileText = e.target.result;
+
+				function parseF(fileText){
+							function deliminated(istr){
+							    delim=istr.indexOf(",");
+							   return(istr.substr(0,delim));
+							}
+				var datarr=[];
+				var patt1=/^#EXTINF/g;	
+				var lines = fileText.match(/^.*((\r\n|\n|\r)|$)/gm);
+				    lines.forEach(function(line) {
+						datarr.push(line);
+					});
+
+					for (var i = 0; i < datarr.length; i++) {
+					var dstr = datarr[i];
+					if (dstr.match(patt1)) {
+					nstr=dstr.substr(8);
+					pstr=nstr.replace("-",",");
+					   var timeS= deliminated(pstr);
+					sstr =  pstr.substr(timeS.length+1,pstr.length);
+					 var trackS= deliminated(sstr);
+					  var artistS =  sstr.substr(trackS.length+1,pstr.length);
+					trackArr.push( {  name : trackS, artist : artistS, length : timeS });
+
+
+					}else{
+					pathArr.push(dstr);
+					}
+
+					}
+
+
+
+
+					return datarr;
+					}
+
+			function echo(item){
+			 		 var span = document.createElement('span'); 
+						     span.innerHTML = ['<pre>',item,'</pre>'].join('');
+				              document.getElementById('list').insertBefore(span, null);
+			}	
+				document.getElementById("wrapper").className = "light layer";
+
+	parseF(fileText);
+var appSteps = trackArr;
+	initTrack(pathArr[1],trackArr[0]);
+
+	};
+	          })(f);
+	          //reader.readAsDataText(f,UTF-8);
+	          reader.readAsText(f);
+	        }
+	      }
+	//step handler
+		function class_steps_handler(param) {
+				var stepMax = trackArr.length-1;
+			if (trackArr.length>0){
+
+
+		   	if (param =="nextT"){
+
+			  if(stepC>stepMax){
+
+				 }
+
+			  else {stepC= stepC+1; initTrack(pathArr[stepC+1],trackArr[stepC]); }
+
+			}else if (param =="prevT"){
+
+			if(stepC<1){ 
+				// do nothing
+
+				 }
+
+			else {stepC= stepC-1;  initTrack(pathArr[stepC+1],trackArr[stepC]);}
+			}
+			 //end of  the steps handler
+			}
+		}
+	//track initializer
+			function initTrack(pathI, trackI){
+
+
+				var srctrack =  trackI.name;
+				var srcalbum = trackI.artist;
+
+			audio.src =  pathI;
+				lab_track.innerHTML= (srctrack);
+				lab_album.innerHTML= (srcalbum);
+
+			}
+	
+// audio event init
+					audio.addEventListener('loadedmetadata', function() {
+					    console.log("track " + audio.src + ", duration: " + audio.duration + "seconds.");
+					playpause.click();
+
+				 setTimer();
+
+					});
+//volume
+						audio.addEventListener('volumechange', function() {
+						// alert( audio.volume);
+
+						});
+
+//volume bar
+						document.getElementById('volume').addEventListener('change', function() {
+											var setvol = this.value;
+
+										  audio.volume=setvol;
+										});
+										
+
+														function setTimer(){
+
+															raw = Math.round(audio.duration);
+															secs= raw%60;
+															mins = (raw-secs)/60;
+
+															document.getElementById('timebar').style.width = '0%';
+															dtimer.innerHTML= ("duration:"+ mins+":"+secs);
+											ctimer.innerHTML= ("elapsed:0:00");
+														}
+
+
+
+												playpause.addEventListener('click', function(e) {
+
+
+														  if (audio.paused == false) {
+														      audio.pause();
+															playpause.className = "icon-play-circle";
+															clearInterval(myVar);
+
+														  }else 
+														{
+														    audio.play();
+															playpause.className = "icon-pause";
+														 var myVar=setInterval(function(){
+														startTimer();
+														},500);
+														}
+												});
+
+												function startTimer(){
+													 CTraw = Math.round(audio.currentTime);
+													ptime = Math.round((audio.currentTime/audio.duration)*100);
+
+													if( CTraw>60){
+
+														st= CTraw%60;
+														mt = (CTraw-st)/60;
+													}else{
+														mt = 00;
+														if(CTraw < 10){
+																 st="0" + CTraw;
+																}else{st = CTraw;}
+
+													}
+										document.getElementById('timebar').style.width = ptime+'%';
+
+													outime= "elapsed:"+ mt +":"+st;
+													ctimer.innerHTML =outime;
+
+
+													if (audio.currentTime == audio.duration) {
+
+
+													document.getElementById('nextT').click();
+													  }
+												}
+										
+</script>
+</body>
+</html>
